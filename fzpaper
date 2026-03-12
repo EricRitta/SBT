@@ -1,0 +1,88 @@
+#!/usr/bin/bash
+
+### TPUT things ###
+BO=$(tput bold)
+R=$(tput setaf 1)
+G=$(tput setaf 2)
+B=$(tput setaf 4)
+r=$(tput sgr0)
+
+### FLAGS ###
+while getopts "hwlf:d:" opt; do
+  case $opt in
+    h) show_help; exit 0 ;;
+    w) HASWALL=true ;;
+    l) HASLOCK=true ;;
+    f) LOCK_F="$OPTARG" ;;
+    d) NEW_D="$OPTARG" ;;
+    ?) echo "Usage: fzpaper [-w] [-l]"; exit 1 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+### FUNCTIONS ###
+show_help() {
+  echo "Use: ${B}fzpaper${r} [${G}-w${r}] [${G}-l${r}] <flags>"
+  echo ""
+  echo "Options:"
+  echo "  ${G}-h${r}:       This help message."
+  echo "  ${G}-w${r}:       Apply an image to the background wallpaper with swww."
+  echo "  ${G}-l${r}:       Apply an image to the background wallpaper for the hyprlock."
+  echo "  ${G}-f${r}:       The file path for the background of the hyprlock."
+  echo "  ${G}-d${r}:       The directory of the images."
+}
+
+if [[ ! $HASWALL && ! $HASLOCK ]]; then
+  show_help
+  exit 0
+fi
+
+### CONST ###
+ERRMES="${R}${BO}error:${r}"
+OLD_D=$(pwd)
+NEW_D=${NEW_D:-"$HOME/Pictures/Wallpapers/"}
+LOCK_F=${LOCK_F:-"$HOME/.config/hypr/sources/hyprlock/background/default.conf"}
+
+# Verification
+if [[ ! -d "$NEW_D" ]]; then
+  echo "${ERRMES} the obtained directory does not exist."
+  exit 1
+fi
+
+if [[ ! -f "$LOCK_F" ]]; then
+  echo "${ERRMES} the obtained lockscreen file does not exist or/and is empty."
+  exit 1
+fi
+
+### GETTING THE IMG ###
+cd "$NEW_D"
+img=$(
+  fzf --preview \
+    'kitten icat \
+      --clear \
+      --transfer-mode=memory \
+      --unicode-placeholder \
+      --stdin=no \
+      --place="${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}@0x0" \
+      {}
+    ' \
+    --preview-window=right:70% \
+    --prompt="Wallpaper > "
+  )
+cd "$OLD_D"
+
+if [[ -z "$img" || ! -e "$NEW_D$img" ]]; then
+  echo "${ERRMES} the obtained image is empty or does not exist."
+  exit 1
+fi
+
+### SET ###
+if $HASWALL; then
+  swww img "$NEW_D/$img" \
+    --transition-type center \
+    --transition-duration 1.5 
+fi
+
+if $HASLOCK; then
+  sed -i "s|path = .*|path = $NEW_D$img|" "$LOCK_F"
+fi
