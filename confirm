@@ -8,12 +8,13 @@ B=$(tput setaf 4)
 r=$(tput sgr0)
 
 ### FLAGS ###
-while getopts "hnm:c:" opt; do
+while getopts "hym:c:" opt; do
   case $opt in
     h) show_help; exit 0 ;;
     y) YFORCE=true; CONFIRMATION="[Y/n]" ;;
     m) MSG="$OPTARG" ;;
-    c) CMD="$OPTARG"
+    c) CMD="$OPTARG" ;;
+    ?) show_help; exit 1 ;;
   esac
 done
 shift $((OPTIND - 1))
@@ -24,6 +25,7 @@ show_help() {
   echo ""
   echo "Options:"
   echo "  -${G}h${r}:       This help message."
+  echo "  -${G}y${r}        Changes the behavior of the confirmation message to [Y/n]."
   echo "  -${G}m${r},       The message before the command."
   echo "  -${G}c${r}        The command message."
 }
@@ -32,6 +34,11 @@ show_help() {
 MSG=${MSG:-"Are you sure you want to"}
 CMD=${CMD:-"${R}$*${r}"}
 CONFIRMATION=${CONFIRMATION:-"[y/N]"}
+
+if [[ -z "$*" ]]; then
+  echo "${B}${R}error:${r} [confirm] requires a command as argument."
+  exit 1
+fi
 
 ### SET ###
 read -r -p "$MSG $CMD $CONFIRMATION" response

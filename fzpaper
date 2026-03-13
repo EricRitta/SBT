@@ -15,7 +15,7 @@ while getopts "hwlf:d:" opt; do
     l) HASLOCK=true ;;
     f) LOCK_F="$OPTARG" ;;
     d) NEW_D="$OPTARG" ;;
-    ?) echo "Usage: fzpaper [-w] [-l]"; exit 1 ;;
+    ?) show_help; exit 1 ;;
   esac
 done
 shift $((OPTIND - 1))
@@ -32,11 +32,6 @@ show_help() {
   echo "  ${G}-d${r}:       The directory of the images."
 }
 
-if [[ ! $HASWALL && ! $HASLOCK ]]; then
-  show_help
-  exit 0
-fi
-
 ### CONST ###
 ERRMES="${R}${BO}error:${r}"
 OLD_D=$(pwd)
@@ -44,6 +39,11 @@ NEW_D=${NEW_D:-"$HOME/Pictures/Wallpapers/"}
 LOCK_F=${LOCK_F:-"$HOME/.config/hypr/sources/hyprlock/background/default.conf"}
 
 # Verification
+if [[ ! $HASWALL && ! $HASLOCK ]]; then
+  echo "${ERRMES} you need to use -w or -l (or both) to set the wallpaper."
+  exit 1
+fi
+
 if [[ ! -d "$NEW_D" ]]; then
   echo "${ERRMES} the obtained directory does not exist."
   exit 1
