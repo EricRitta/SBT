@@ -1,0 +1,43 @@
+#!/usr/bin/bash
+
+### TPUT things ###
+BO=$(tput bold)
+R=$(tput setaf 1)
+G=$(tput setaf 2)
+B=$(tput setaf 4)
+r=$(tput sgr0)
+
+### FLAGS ###
+while getopts "hnm:c:" opt; do
+  case $opt in
+    h) show_help; exit 0 ;;
+    y) YFORCE=true; CONFIRMATION="[Y/n]" ;;
+    m) MSG="$OPTARG" ;;
+    c) CMD="$OPTARG"
+  esac
+done
+shift $((OPTIND - 1))
+
+### FUNCTIONS ###
+show_help() {
+  echo "Use: ${B}confirm${r} <${G}flags${r}> [command]"
+  echo ""
+  echo "Options:"
+  echo "  -${G}h${r}:       This help message."
+  echo "  -${G}m${r},       The message before the command."
+  echo "  -${G}c${r}        The command message."
+}
+
+### CONST ###
+MSG=${MSG:-"Are you sure you want to"}
+CMD=${CMD:-"${R}$*${r}"}
+CONFIRMATION=${CONFIRMATION:-"[y/N]"}
+
+### SET ###
+read -r -p "$MSG $CMD $CONFIRMATION" response
+case "$response" in
+  [yY]) exec "$@" ;;
+  [nN]) echo "ok." ; exit 0 ;;
+  "")   [[ $YFORCE == "true" ]] && exec "$@" || { echo "ok." ; exit 0 ; } ;;
+  *)    echo "ok." ; exit 0 ;;
+esac
