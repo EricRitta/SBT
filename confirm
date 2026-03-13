@@ -41,7 +41,7 @@ if [[ -z "$*" ]]; then
 fi
 
 ### SET ###
-read -r -p "$MSG $CMD $CONFIRMATION" response
+read -r -p "$MSG $CMD $CONFIRMATION: " response
 case "$response" in
   [yY]) exec "$@" ;;
   [nN]) echo "ok." ; exit 0 ;;
