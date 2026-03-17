@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 ### TPUT things ###
 BO=$(tput bold)
@@ -6,6 +6,18 @@ R=$(tput setaf 1)
 G=$(tput setaf 2)
 B=$(tput setaf 4)
 r=$(tput sgr0)
+
+### FUNCTIONS ###
+show_help() {
+  echo "Use: ${B}fzpaper${r} [${G}-w${r}] [${G}-l${r}] <flags>"
+  echo ""
+  echo "Options:"
+  echo "  ${G}-h${r}:       This help message."
+  echo "  ${G}-w${r}:       Apply an image to the background wallpaper with swww."
+  echo "  ${G}-l${r}:       Apply an image to the background wallpaper for the hyprlock."
+  echo "  ${G}-f${r}:       The file path for the background of the hyprlock."
+  echo "  ${G}-d${r}:       The directory of the images."
+}
 
 ### FLAGS ###
 while getopts "hwlf:d:" opt; do
@@ -19,18 +31,6 @@ while getopts "hwlf:d:" opt; do
   esac
 done
 shift $((OPTIND - 1))
-
-### FUNCTIONS ###
-show_help() {
-  echo "Use: ${B}fzpaper${r} [${G}-w${r}] [${G}-l${r}] <flags>"
-  echo ""
-  echo "Options:"
-  echo "  ${G}-h${r}:       This help message."
-  echo "  ${G}-w${r}:       Apply an image to the background wallpaper with swww."
-  echo "  ${G}-l${r}:       Apply an image to the background wallpaper for the hyprlock."
-  echo "  ${G}-f${r}:       The file path for the background of the hyprlock."
-  echo "  ${G}-d${r}:       The directory of the images."
-}
 
 ### CONST ###
 ERRMES="${R}${BO}error:${r}"
