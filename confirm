@@ -7,6 +7,17 @@ G=$(tput setaf 2)
 B=$(tput setaf 4)
 r=$(tput sgr0)
 
+### FUNCTIONS ###
+show_help() {
+  echo "Use: ${B}confirm${r} <${G}flags${r}> [command]"
+  echo ""
+  echo "Options:"
+  echo "  -${G}h${r}:       This help message."
+  echo "  -${G}y${r}        Changes the behavior of the confirmation message to [Y/n]."
+  echo "  -${G}m${r},       The message before the command."
+  echo "  -${G}c${r}        The command message."
+}
+
 ### FLAGS ###
 while getopts "hym:c:" opt; do
   case $opt in
@@ -18,17 +29,6 @@ while getopts "hym:c:" opt; do
   esac
 done
 shift $((OPTIND - 1))
-
-### FUNCTIONS ###
-show_help() {
-  echo "Use: ${B}confirm${r} <${G}flags${r}> [command]"
-  echo ""
-  echo "Options:"
-  echo "  -${G}h${r}:       This help message."
-  echo "  -${G}y${r}        Changes the behavior of the confirmation message to [Y/n]."
-  echo "  -${G}m${r},       The message before the command."
-  echo "  -${G}c${r}        The command message."
-}
 
 ### CONST ###
 MSG=${MSG:-"Are you sure you want to"}
