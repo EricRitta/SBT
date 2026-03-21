@@ -2,4 +2,4 @@
 binary to chage swww and hyprlock wallpaper using fzf and kitten icat.
 
 # confirm
-binary to have a confirmation befora a command.
+binary to have a confirmation before a command.
