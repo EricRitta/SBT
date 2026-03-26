@@ -78,7 +78,7 @@ fi
 
 ### SET ###
 if $HASWALL; then
-  swww img "$NEW_D/$img" \
+  awww img "$NEW_D/$img" \
     --transition-type center \
     --transition-duration 1.5 
 fi
