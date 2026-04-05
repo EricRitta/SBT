@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+
+### TPUT things ###
+BO=$(tput bold)
+R=$(tput setaf 1)
+G=$(tput setaf 2)
+B=$(tput setaf 4)
+r=$(tput sgr0)
+
+### FUNCTIONS ###
+show_help() {
+  echo "Use: ${B}fzclicker${r} [${G}-l${r}] [${G}-r${r}] [${G}-m${r}] ${G}-i${r} <seconds>"
+  echo ""
+  echo "Options:"
+  echo "  ${G}-h${r}:       This help message."
+  echo "  ${G}-l${r}:       Left mouse button."
+  echo "  ${G}-r${r}:       Right mouse button."
+  echo "  ${G}-m${r}:       Middle mouse button."
+  echo "  ${G}-n${r}:       Enable notifications."
+  echo "  ${G}-i${r}:       Interval between clicks."
+  echo "  ${G}-c${r}:       Custom ydotool click strings. (accepts multiple identical flags)"
+}
+
+killclicker() {
+  if [[ -f "$LOCK" ]]; then
+    rm -f "$LOCK"
+    kill "$(cat "$PID")"
+    rm -f "$PID"
+    [[ "$NOTIFICATIONS" == "true" ]] && \
+      notify-send \
+        -i media-playback-stop \
+        -a "SBT" \
+        "Clicker" \
+        "Clicker stopped."
+  fi
+}
+
+### FLAGS ###
+clicks=()
+while getopts "hlrmni:c:" opt; do
+  case $opt in
+    h) show_help; exit 0 ;;
+    l) clicks+=("0xC0") ;;
+    r) clicks+=("0xC1") ;;
+    m) clicks+=("0xC2") ;;
+    n) NOTIFICATIONS=true ;;
+    i) INTERVAL="$OPTARG" ;;
+    c) clicks+=("$OPTARG") ;;
+    ?) show_help; exit 1 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+### CONST ###
+LOCK="/tmp/clicker.lock"
+PID="/tmp/clicker.pid"
+trap killclicker SIGINT SIGTERM EXIT
+
+# Verification
+INTERVAL=${INTERVAL:-0.1}
+if ! [[ "$INTERVAL" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+  echo "${R}${BO}error:${r} -i needs to be a number."
+  show_help
+  [[ "$NOTIFICATIONS" == "true" ]] && \
+    notify-send \
+      -u critical \
+      -i dialog-warning \
+      -a "SBT" \
+      "Clicker" \
+      "-i needs to be a number."
+  exit 1
+fi
+
+declare -A seen
+for bnt in "${clicks[@]}"; do
+  seen[$bnt]=1
+done
+clicks=("${!seen[@]}")
+
+if (( ${#clicks[@]} == 0 )); then
+  echo "${R}${BO}error:${r} no mouse button was selected to be clicked."
+  show_help
+  [[ "$NOTIFICATIONS" == "true" ]] && \
+    notify-send \
+      -u critical \
+      -i dialog-warning \
+      -a "SBT" \
+      "Clicker" \
+      "No mouse button was selected to be clicked."
+  exit 1
+fi
+
+### SET ###
+if [[ -f "$LOCK" ]]; then
+  killclicker
+else
+  touch "$LOCK"
+  while [[ -f "$LOCK" ]]; do
+    for bnt in "${clicks[@]}"; do
+      ydotool click "$bnt"
+    done
+    sleep $INTERVAL
+  done &
+  echo $! > "$PID"
+  [[ "$NOTIFICATIONS" == "true" ]] && \
+    notify-send \
+      -i media-playback-start \
+      -a "SBT" \
+      "Clicker" \
+      "Clicker started."
+  wait
+fi
