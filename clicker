@@ -99,7 +99,7 @@ else
     for bnt in "${clicks[@]}"; do
       ydotool click "$bnt"
     done
-    sleep $INTERVAL
+    sleep "$INTERVAL"
   done &
   echo $! > "$PID"
   [[ "$NOTIFICATIONS" == "true" ]] && \

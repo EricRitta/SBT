@@ -55,7 +55,7 @@ if [[ ! -f "$LOCK_F" ]]; then
 fi
 
 ### GETTING THE IMG ###
-cd "$NEW_D"
+cd "$NEW_D" || exit 1
 img=$(
   fzf --preview \
     'kitten icat \
@@ -69,7 +69,7 @@ img=$(
     --preview-window=right:70% \
     --prompt="Wallpaper > "
   )
-cd "$OLD_D"
+cd "$OLD_D" || exit 1
 
 if [[ -z "$img" || ! -e "$NEW_D$img" ]]; then
   echo "${ERRMES} the obtained image is empty or does not exist."

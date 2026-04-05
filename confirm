@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 ### TPUT things ###
-BO=$(tput bold)
 R=$(tput setaf 1)
 G=$(tput setaf 2)
 B=$(tput setaf 4)
