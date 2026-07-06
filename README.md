@@ -1,8 +1,8 @@
 # fzpaper
-binary to chage swww and hyprlock wallpaper using fzf and kitten icat.
+bash tool to chage swww and hyprlock wallpaper using fzf and kitten icat.
 
 # confirm
-binary to have a confirmation before a command.
+bash tool to have a confirmation before a command.
 
 # clicker
-binary to auto click using ydotool.
+bash tool to auto click using ydotool.
