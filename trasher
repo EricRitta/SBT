@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+### TPUT things ###
+if [[ -t 1 ]]; then
+  BO=$(tput bold)
+  R=$(tput setaf 1)
+  G=$(tput setaf 2)
+  Y=$(tput setaf 3)
+  B=$(tput setaf 4)
+  M=$(tput setaf 5)
+  r=$(tput sgr0)
+else
+  BO=""
+  R=""
+  G=""
+  Y=""
+  B=""
+  M=""
+  r=""
+fi
+
+### CONFIG ###
+CONFIG_DIR="$HOME/.config/trasher"
+CONFIG_FILE="$CONFIG_DIR/config"
+STATE_DIR="$HOME/.local/share/trasher"
+TIMESTAMP_FILE="$STATE_DIR/last_clean"
+
+mkdir -p "$CONFIG_DIR"
+mkdir -p "$STATE_DIR"
+
+### DEFAULTS ###
+DEFAULT_TRASH_PATH="$HOME/.local/share/Trash"
+DEFAULT_INTERVAL_SECONDS=$((7 * 24 * 60 * 60)) # a week
+
+### LOAD CONFIG ###
+TRASH_PATH="$DEFAULT_TRASH_PATH"
+INTERVAL_SECONDS="$DEFAULT_INTERVAL_SECONDS"
+if [[ -f "$CONFIG_FILE" ]]; then
+  source "$CONFIG_FILE"
+fi
+
+### FUNCTIONS ###
+show_help() {
+  cat <<EOF
+Use: ${B}trasher${r} <${G}flags${r}>
+
+${R}No${r} flags: show remaining time until the next clean operation.
+${G}With${r} flags:
+  ${G}-h${r}:       Show this help message.
+  ${G}-f${r}:       Force the cleaning operation.
+  ${G}-s${r}:       Silence the final output message.
+  ${G}-p${r}:       Change the path of the trash bin (${BO}${R}USE WITH CAUTION!${r}) 
+              (current: ${Y}$TRASH_PATH${r}).
+  ${G}-t${r}:       Change the time between cleaning operations.
+              Accepted suffixes: ${BO}${B}h${r} (hour), ${BO}${B}d${r} (day), ${BO}${B}w${r} (week), ${BO}${B}m${r} (month).
+              Examples: -t 2w, -t 12h, -t 1m, -t 3d
+
+Current ${M}config${r} is in: ${M}$CONFIG_FILE${r}
+EOF
+}
+
+# 2w, 12h, 1m, 3d to seconds (FULL AI)
+parse_interval() {
+  local input="$1"
+  local number unit
+
+  if [[ ! "$input" =~ ^([0-9]+)([hdwm])$ ]]; then
+      echo "${BO}${R}error${r}: invalid time format: '$input'" >&2
+      exit 1
+  fi
+
+  number="${BASH_REMATCH[1]}"
+  unit="${BASH_REMATCH[2]}"
+
+  case "$unit" in
+      h) echo $((number * 60 * 60)) ;;
+      d) echo $((number * 24 * 60 * 60)) ;;
+      w) echo $((number * 7 * 24 * 60 * 60)) ;;
+      m) echo $((number * 30 * 24 * 60 * 60)) ;;
+  esac
+}
+
+# Seconds to date format (FULL AI)
+format_duration() {
+  local total_seconds="$1"
+
+  if (( total_seconds <= 0 )); then
+      echo "now."
+      return
+  fi
+
+  local days=$((total_seconds / 86400))
+  local hours=$(((total_seconds % 86400) / 3600))
+  local minutes=$(((total_seconds % 3600) / 60))
+
+  local parts=()
+  (( days > 0 )) && parts+=("${days}d")
+  (( hours > 0 )) && parts+=("${hours}h")
+  (( minutes > 0 || ${#parts[@]} == 0 )) && parts+=("${minutes}m")
+
+  local IFS=" "
+  echo "${parts[*]}"
+}
+
+save_config() {
+  cat > "$CONFIG_FILE" <<EOF
+TRASH_PATH="$TRASH_PATH"
+INTERVAL_SECONDS="$INTERVAL_SECONDS"
+EOF
+}
+
+clean_operation() {
+  rm -rfv "${TRASH_PATH:?}/files"
+  rm -rfv "${TRASH_PATH:?}/info"
+  mkdir -pv "$TRASH_PATH/files" "$TRASH_PATH/info"
+  date +%s > "$TIMESTAMP_FILE"
+  echo "Cleaning operation ${G}completed${r}."
+}
+
+show_status() {
+  local last_clean now diff remaining
+  last_clean=$(cat "$TIMESTAMP_FILE")
+  now=$(date +%s)
+  diff=$((now - last_clean))
+  remaining=$((INTERVAL_SECONDS - diff))
+
+  echo "Trash path: ${Y}$TRASH_PATH${r}"
+  echo "Interval: ${B}$(format_duration "$INTERVAL_SECONDS")${r}"
+  
+  if (( remaining <= 0 )); then
+    echo "Time remaining for the next cleaning operation: ${G}0${r}. (You probably just cleaned, look up.)"
+  else
+    echo "Time remaining for the next cleaning operation: ${G}$(format_duration "$remaining")${r}."
+  fi
+}
+
+### FLAGS ###
+FORCE="false"
+QUIET="false"
+NEW_INTERVAL=""
+NEW_PATH=""
+while getopts "hfsp:t:" opt; do
+  case $opt in
+    h) show_help; exit 0 ;;
+    f) FORCE="true" ;;
+    s) QUIET="true" ;;
+    t) NEW_INTERVAL="$OPTARG" ;;
+    p) NEW_PATH="$OPTARG" ;;
+    ?) ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+### VERIFICATIONS ###
+# force
+if [[ "$FORCE" == "true" ]]; then
+  read -r -p "Are you sure you want to ${BO}${R}delete${r} ${Y}$TRASH_PATH${r}? [${G}y${r}/${R}N${r}]: " response
+  if [[ $response =~ ^[Yy]$ ]]; then
+    clean_operation
+  else
+    echo "Nothing happened."
+  fi
+  exit 0
+fi
+
+CONFIG_CHANGED="false"
+
+# interval
+if [[ -n "$NEW_INTERVAL" ]]; then
+  INTERVAL_SECONDS=$(parse_interval "$NEW_INTERVAL")
+  CONFIG_CHANGED="true"
+  echo "Cleaning interval ${G}updated${r} to: ${B}$(format_duration "$INTERVAL_SECONDS")${r}."
+fi
+
+# path
+if [[ -n "$NEW_PATH" ]]; then
+  TRASH_PATH="${NEW_PATH%/}"
+  CONFIG_CHANGED="true"
+  echo "Trash path ${G}updated${r} to: ${Y}$TRASH_PATH${r}."
+fi
+
+if [[ "$CONFIG_CHANGED" == "true" ]]; then
+  save_config
+fi
+
+if [[ ! -f "$TIMESTAMP_FILE" ]]; then
+  date +%s > "$TIMESTAMP_FILE"
+  exit 0
+fi
+
+last_clean=$(cat "$TIMESTAMP_FILE")
+now=$(date +%s)
+diff=$((now - last_clean))
+
+if (( diff >= INTERVAL_SECONDS )); then
+  clean_operation
+fi
+
+if [[ "$CONFIG_CHANGED" == "false" && "$FORCE" == "false" && "$QUIET" == "false" ]]; then
+  show_status
+fi
