@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
 ### TPUT things ###
-R=$(tput setaf 1)
-G=$(tput setaf 2)
-B=$(tput setaf 4)
-r=$(tput sgr0)
+if [[ -t 1 ]]; then
+  R=$(tput setaf 1)
+  G=$(tput setaf 2)
+  B=$(tput setaf 4)
+  r=$(tput sgr0)
+else
+  R=""
+  G=""
+  B=""
+  r=""
+fi
 
 ### FUNCTIONS ###
 show_help() {
