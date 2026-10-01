@@ -17,24 +17,20 @@ fi
 
 ### FUNCTIONS ###
 show_help() {
-  echo "Use: ${B}fzpaper${r} [${G}-w${r}] [${G}-l${r}] <flags>"
+  echo "Use: ${B}fzpaper${r} [${G}-f${r}] [${G}-d${r}] <flags>"
   echo ""
   echo "Options:"
   echo "  ${G}-h${r}:       This help message."
-  echo "  ${G}-w${r}:       Apply an image to the background wallpaper with swww."
-  echo "  ${G}-l${r}:       Apply an image to the background wallpaper for the hyprlock."
-  echo "  ${G}-f${r}:       The file path for the background of the hyprlock."
-  echo "  ${G}-d${r}:       The directory of the images."
+  echo "  ${G}-f${r}:       The directory for the wallpapers.conf variables file. (defaults to ~/.config/hypr/themes)"
+  echo "  ${G}-d${r}:       The directory of the images. (defaults to ~/Pictures/Wallpapers)"
 }
 
 ### FLAGS ###
 while getopts "hwlf:d:" opt; do
   case $opt in
     h) show_help; exit 0 ;;
-    w) HASWALL=true ;;
-    l) HASLOCK=true ;;
-    f) LOCK_F="$OPTARG" ;;
-    d) NEW_D="$OPTARG" ;;
+    f) V_DIRECTORY="$OPTARG" ;;
+    d) I_DIRECTORY="$OPTARG" ;;
     ?) show_help; exit 1 ;;
   esac
 done
@@ -43,27 +39,23 @@ shift $((OPTIND - 1))
 ### CONST ###
 ERRMES="${R}${BO}error:${r}"
 OLD_D=$(pwd)
-NEW_D=${NEW_D:-"$HOME/Pictures/Wallpapers/"}
-LOCK_F=${LOCK_F:-"$HOME/.config/hypr/sources/hyprlock/background/default.conf"}
+
+V_DIRECTORY=${V_DIRECTORY:-"$HOME/.config/hypr/themes"}
+I_DIRECTORY=${I_DIRECTORY:-"$HOME/Pictures/Wallpapers"}
 
 # Verification
-if [[ ! $HASWALL && ! $HASLOCK ]]; then
-  echo "${ERRMES} you need to use -w or -l (or both) to set the wallpaper."
+if [[ ! -d "$V_DIRECTORY" ]]; then
+  echo "${ERRMES} the obtained wallpaper.conf variables file directory does not exist."
   exit 1
 fi
 
-if [[ ! -d "$NEW_D" ]]; then
-  echo "${ERRMES} the obtained directory does not exist."
-  exit 1
-fi
-
-if [[ ! -f "$LOCK_F" ]]; then
-  echo "${ERRMES} the obtained lockscreen file does not exist or/and is empty."
+if [[ ! -d "$I_DIRECTORY" ]]; then
+  echo "${ERRMES} the obtained image directory does not exist."
   exit 1
 fi
 
 ### GETTING THE IMG ###
-cd "$NEW_D" || exit 1
+cd "$I_DIRECTORY" || exit 1
 img=$(
   fzf --preview \
     'kitten icat \
@@ -79,18 +71,13 @@ img=$(
   )
 cd "$OLD_D" || exit 1
 
-if [[ -z "$img" || ! -e "$NEW_D$img" ]]; then
+if [[ -z "$img" || ! -e "$I_DIRECTORY/$img" ]]; then
   echo "${ERRMES} the obtained image is empty or does not exist."
   exit 1
 fi
 
 ### SET ###
-if $HASWALL; then
-  awww img "$NEW_D/$img" \
-    --transition-type center \
-    --transition-duration 1.5 
-fi
-
-if $HASLOCK; then
-  sed -i "s|path = .*|path = $NEW_D$img|" "$LOCK_F"
-fi
+rm "$V_DIRECTORY/wallpapers.conf"
+echo "\$MAIN_WALLPAPER = $I_DIRECTORY/$img" >> "$V_DIRECTORY/wallpapers.conf"
+echo "\$LOCK_WALLPAPER = $I_DIRECTORY/$img" >> "$V_DIRECTORY/wallpapers.conf"
+hyprctl hyprpaper wallpaper ",$I_DIRECTORY/$img"
