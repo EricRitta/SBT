@@ -40,7 +40,7 @@ shift $((OPTIND - 1))
 ERRMES="${R}${BO}error:${r}"
 OLD_D=$(pwd)
 
-V_DIRECTORY=${V_DIRECTORY:-"$HOME/.config/hypr/themes"}
+V_DIRECTORY=${V_DIRECTORY:-"$HOME/.config/hypr/theme"}
 I_DIRECTORY=${I_DIRECTORY:-"$HOME/Pictures/Wallpapers"}
 
 # Verification
